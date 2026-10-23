@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Zifferblatt mit leichtem Verlauf fuer mehr Tiefe -->
+    <path
+        android:pathData="M54,54 m-25,0 a25,25 0 1,0 50,0 a25,25 0 1,0 -50,0 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="29"
+                android:startY="29"
+                android:endX="79"
+                android:endY="79">
+                <item android:offset="0" android:color="#FFFFFFFF" />
+                <item android:offset="1" android:color="#FFD3DEFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Stundenmarken -->
+    <path
+        android:strokeColor="#2B2E86"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:pathData="M54,31.5 L54,35" />
+    <path
+        android:strokeColor="#2B2E86"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:pathData="M54,76.5 L54,73" />
+    <path
+        android:strokeColor="#2B2E86"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:pathData="M31.5,54 L35,54" />
+    <path
+        android:strokeColor="#2B2E86"
+        android:strokeWidth="2.4"
+        android:strokeLineCap="round"
+        android:pathData="M76.5,54 L73,54" />
+
+    <!-- Zeiger: Stunde nach oben, Minute nach rechts -->
+    <path
+        android:strokeColor="#2B2E86"
+        android:strokeWidth="5.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L54,40" />
+    <path
+        android:strokeColor="#2B2E86"
+        android:strokeWidth="5.5"
+        android:strokeLineCap="round"
+        android:pathData="M54,54 L69,54" />
+
+    <!-- Mittelpunkt -->
+    <path
+        android:fillColor="#2B2E86"
+        android:pathData="M54,54 m-2.7,0 a2.7,2.7 0 1,0 5.4,0 a2.7,2.7 0 1,0 -5.4,0 z" />
+</vector>

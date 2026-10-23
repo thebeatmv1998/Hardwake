@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Monochromes Icon fuer thematische Launcher-Icons (Android 13+).
+  Der Launcher faerbt die Silhouette selbst ein; die Zeiger sind als
+  Aussparungen (evenOdd) angelegt, damit sie sichtbar bleiben.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#000000"
+        android:fillType="evenOdd"
+        android:pathData="M54,54 m-25,0 a25,25 0 1,0 50,0 a25,25 0 1,0 -50,0 z M51.25,40 L56.75,40 L56.75,54 L51.25,54 z M54,51.25 L69,51.25 L69,56.75 L54,56.75 z" />
+</vector>
