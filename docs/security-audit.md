@@ -30,7 +30,7 @@ Alarm times, labels and learned barcode values are personal but not secrets in t
 | S-8 | Info | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` is a restricted permission for Google Play distribution. | **Accepted** for private/sideloaded distribution. Removing it requires a different onboarding flow. |
 | S-9 | Info | Math problems use `kotlin.random.Random`, which is not a cryptographic generator. | **Not a security boundary.** Answers are computed and checked on the same device. |
 | S-10 | Low | Dependency versions date from 2024: Compose BOM 2024.10.01, CameraX 1.3.4, Room 2.6.1, ML Kit 17.3.0. | **Open.** Update dependencies and repeat this review before a public release. |
-| S-11 | Info | The release APK carries v1, v2 and v3 signatures. v1 is unnecessary for `minSdk 26`. | **Open.** Future releases can be signed with v2/v3 only. |
+| S-11 | Info | APK signature schemes. v1 (JAR signing) is unnecessary for `minSdk 26`. | **Verified.** The 1.1.0 APK is signed with v2 and v3; v1 is disabled, and `apksigner verify` passes. |
 | S-12 | Info | Signing material could leak through the repository. | **Verified.** `keystore/`, `*.jks` and `keystore.properties` are gitignored, and the keystore is not tracked. |
 | S-13 | Low | Debug builds are debuggable and allow backup by default. | **Verified.** Release builds set `debuggable=false` and now disable backups. |
 | S-14 | Info | The ring screen could appear in the recents list and leak alarm content. | **Verified.** `RingActivity` is `exported=false` and `excludeFromRecents=true`. |
@@ -52,8 +52,7 @@ The app declares no content providers, no file providers and no WebView.
 
 1. Update the AndroidX, CameraX, Room and ML Kit dependencies, then repeat this review.
 2. If the app ever ships on Google Play, remove `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` and rely on the exact-alarm settings screen that the app already links to.
-3. Sign future APKs with v2/v3 only.
-4. Keep `allowBackup=false` unless alarm data should sync to another device, in which case add explicit backup rules and encrypt the database.
+3. Keep `allowBackup=false` unless alarm data should sync to another device, in which case add explicit backup rules and encrypt the database.
 
 ## Out of scope
 
