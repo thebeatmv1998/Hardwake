@@ -55,12 +55,12 @@ import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -68,14 +68,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -87,32 +86,26 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wecker.app.alarm.AlarmScheduler
 import com.wecker.app.data.Alarm
 import com.wecker.app.data.ChallengeType
-import com.wecker.app.data.SettingsRepository
-import com.wecker.app.data.ThemeMode
-import com.wecker.app.ui.theme.AppPalettes
+import com.wecker.app.i18n.LocalStrings
 import com.wecker.app.ui.theme.LocalAppPalette
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 @Composable
 fun AlarmListScreen(
     onEditAlarm: (Long) -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: AlarmListViewModel = viewModel()
 ) {
+    val s = LocalStrings.current
     val alarms by viewModel.alarms.collectAsState()
     val context = LocalContext.current
-    val settings = remember { SettingsRepository(context) }
-    val themeMode by settings.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
-    val colorScheme by settings.colorScheme.collectAsState(initial = 0)
-    val scope = rememberCoroutineScope()
-    var showThemeDialog by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<Alarm?>(null) }
 
     // Hinweise bei jedem Resume neu bewerten, damit sie direkt nach dem
     // Erteilen einer Berechtigung verschwinden.
     var resumeTick by remember { mutableIntStateOf(0) }
     val lifecycleOwner = LocalLifecycleOwner.current
-    androidx.compose.runtime.DisposableEffect(lifecycleOwner) {
+    DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) resumeTick++
         }
@@ -120,34 +113,26 @@ fun AlarmListScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    if (showThemeDialog) {
-        ThemeDialog(
-            currentColor = colorScheme,
-            currentMode = themeMode,
-            onSelectColor = { scope.launch { settings.setColorScheme(it) } },
-            onSelectMode = { scope.launch { settings.setThemeMode(it) } },
-            onDismiss = { showThemeDialog = false }
-        )
-    }
-
     pendingDelete?.let { victim ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Wecker löschen?") },
+            title = { Text(s.deleteAlarmTitle) },
             text = {
                 Text(
-                    "Der Wecker %02d:%02d (%s) wird endgültig entfernt."
-                        .format(victim.hour, victim.minute, repeatSummary(victim))
+                    s.deleteAlarmText(
+                        "%02d:%02d".format(victim.hour, victim.minute),
+                        repeatSummary(victim, s)
+                    )
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     viewModel.delete(victim)
                     pendingDelete = null
-                }) { Text("Löschen", color = MaterialTheme.colorScheme.error) }
+                }) { Text(s.delete, color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Abbrechen") }
+                TextButton(onClick = { pendingDelete = null }) { Text(s.cancel) }
             }
         )
     }
@@ -159,14 +144,14 @@ fun AlarmListScreen(
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             GradientHeader(
-                title = "Wecker",
-                tagline = "Zuverlässig aufwachen",
+                title = s.listTitle,
+                tagline = s.tagline,
                 actions = {
-                    IconButton(onClick = { showThemeDialog = true }) {
+                    IconButton(onClick = onOpenSettings) {
                         Icon(
                             Icons.Default.Settings,
-                            contentDescription = "Design-Einstellungen",
-                            tint = androidx.compose.ui.graphics.Color.White
+                            contentDescription = s.settingsDescription,
+                            tint = Color.White
                         )
                     }
                 }
@@ -176,8 +161,8 @@ fun AlarmListScreen(
             @Suppress("UNUSED_EXPRESSION") resumeTick
             HintCard(
                 visible = batteryOptimizationNeeded(context),
-                text = "Akku-Optimierung ist aktiv – Samsung legt die App sonst schlafen und der Wecker kann ausfallen.",
-                actionLabel = "Ausnahme",
+                text = s.batteryHint,
+                actionLabel = s.batteryAction,
                 onAction = {
                     context.startActivity(
                         Intent(
@@ -189,8 +174,8 @@ fun AlarmListScreen(
             )
             HintCard(
                 visible = fullScreenIntentBlocked(context),
-                text = "Vollbild-Alarme sind deaktiviert – der Wecker öffnet sich dann nicht automatisch auf dem Sperrbildschirm.",
-                actionLabel = "Erlauben",
+                text = s.fullScreenHint,
+                actionLabel = s.fullScreenAction,
                 onAction = {
                     context.startActivity(
                         Intent(
@@ -202,8 +187,8 @@ fun AlarmListScreen(
             )
             HintCard(
                 visible = exactAlarmsBlocked(context),
-                text = "Exakte Alarme sind deaktiviert – der Wecker könnte verspätet klingeln.",
-                actionLabel = "Erlauben",
+                text = s.exactAlarmHint,
+                actionLabel = s.fullScreenAction,
                 onAction = {
                     context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
                 }
@@ -234,6 +219,7 @@ fun AlarmListScreen(
 /** FAB, der beim Erschließen sanft hochskaliert. */
 @Composable
 private fun ScaleInFab(onClick: () -> Unit) {
+    val s = LocalStrings.current
     var appeared by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { appeared = true }
     val scale by animateFloatAsState(
@@ -245,13 +231,14 @@ private fun ScaleInFab(onClick: () -> Unit) {
         onClick = onClick,
         modifier = Modifier.scale(scale),
         icon = { Icon(Icons.Default.Add, contentDescription = null) },
-        text = { Text("Wecker") }
+        text = { Text(s.newAlarmFab) }
     )
 }
 
 /** Getönte Ergebnis-Card mit Countdown bis zum nächsten Klingeln (Zeitrechner-Stil). */
 @Composable
 private fun NextAlarmCountdown(alarms: List<Alarm>, onEditAlarm: (Long) -> Unit) {
+    val s = LocalStrings.current
     val palette = LocalAppPalette.current
     // Ticker: einmal pro Sekunde neu berechnen.
     val now by produceState(System.currentTimeMillis(), alarms) {
@@ -270,8 +257,8 @@ private fun NextAlarmCountdown(alarms: List<Alarm>, onEditAlarm: (Long) -> Unit)
     val hours = (totalSec % 86400) / 3600
     val minutes = (totalSec % 3600) / 60
     val seconds = totalSec % 60
-    val ticking = if (days > 0) "%d T  %02d:%02d:%02d".format(days, hours, minutes, seconds)
-    else "%02d:%02d:%02d".format(hours, minutes, seconds)
+    val ticking = if (days > 0) s.countdownDays(days, hours, minutes, seconds)
+    else s.countdown(hours, minutes, seconds)
 
     // Pulsierender Live-Punkt.
     val pulse = rememberInfiniteTransition(label = "pulse")
@@ -301,8 +288,9 @@ private fun NextAlarmCountdown(alarms: List<Alarm>, onEditAlarm: (Long) -> Unit)
                 )
                 Spacer(Modifier.size(8.dp))
                 Text(
-                    "Nächster Wecker · %02d:%02d · %s".format(
-                        alarm.hour, alarm.minute, triggerDayLabel(triggerAt)
+                    s.nextAlarmLabel(
+                        "%02d:%02d".format(alarm.hour, alarm.minute),
+                        triggerDayLabel(triggerAt, s)
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -325,7 +313,7 @@ private fun NextAlarmCountdown(alarms: List<Alarm>, onEditAlarm: (Long) -> Unit)
                 )
             }
             Text(
-                relativeLabel(totalSec),
+                relativeLabel(totalSec, s),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -336,6 +324,7 @@ private fun NextAlarmCountdown(alarms: List<Alarm>, onEditAlarm: (Long) -> Unit)
 /** Leerer Zustand mit sanftem Einblend-Effekt. */
 @Composable
 private fun EmptyState(modifier: Modifier = Modifier) {
+    val s = LocalStrings.current
     var appeared by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { appeared = true }
     val scale by animateFloatAsState(
@@ -368,9 +357,9 @@ private fun EmptyState(modifier: Modifier = Modifier) {
             )
         }
         Spacer(Modifier.height(16.dp))
-        Text("Noch keine Wecker", style = MaterialTheme.typography.titleMedium, modifier = Modifier.alpha(alpha))
+        Text(s.emptyTitle, style = MaterialTheme.typography.titleMedium, modifier = Modifier.alpha(alpha))
         Text(
-            "Tippe auf „Wecker“, um deinen ersten zu erstellen.",
+            s.emptyText,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.outline,
             modifier = Modifier.alpha(alpha)
@@ -422,65 +411,6 @@ private fun exactAlarmsBlocked(context: Context): Boolean {
     return !am.canScheduleExactAlarms()
 }
 
-/** Dialog zur Design-Auswahl: Farbschema + Modus (wie Zeitrechner). */
-@Composable
-private fun ThemeDialog(
-    currentColor: Int,
-    currentMode: ThemeMode,
-    onSelectColor: (Int) -> Unit,
-    onSelectMode: (ThemeMode) -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Design") },
-        text = {
-            Column {
-                Text("Farbe", style = MaterialTheme.typography.labelLarge)
-                AppPalettes.forEachIndexed { index, (light, _) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelectColor(index) }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = currentColor == index, onClick = { onSelectColor(index) })
-                        Box(
-                            modifier = Modifier
-                                .size(16.dp)
-                                .clip(CircleShape)
-                                .background(Brush.horizontalGradient(listOf(light.headerStart, light.headerEnd)))
-                        )
-                        Text(light.themeName, modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-                Spacer(Modifier.height(12.dp))
-                Text("Modus", style = MaterialTheme.typography.labelLarge)
-                listOf(
-                    ThemeMode.SYSTEM to "System",
-                    ThemeMode.LIGHT to "Hell",
-                    ThemeMode.DARK to "Dunkel"
-                ).forEach { (mode, label) ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onSelectMode(mode) }
-                            .padding(vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = currentMode == mode, onClick = { onSelectMode(mode) })
-                        Text(label, modifier = Modifier.padding(start = 8.dp))
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) { Text("Schließen") }
-        }
-    )
-}
-
 @Composable
 private fun AlarmRow(
     alarm: Alarm,
@@ -489,6 +419,7 @@ private fun AlarmRow(
     onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit
 ) {
+    val s = LocalStrings.current
     val next = remember(alarm.id, alarm.enabled, alarm.hour, alarm.minute, alarm.daysMask, alarm.dateEpochDay) {
         AlarmScheduler.nextTriggerMillis(alarm)
     }
@@ -511,35 +442,37 @@ private fun AlarmRow(
                     else MaterialTheme.colorScheme.outline
                 )
                 val details = buildList {
-                    add(repeatSummary(alarm))
+                    add(repeatSummary(alarm, s))
                     if (alarm.label.isNotBlank()) add(alarm.label)
                     add(
                         when (alarm.challengeType) {
-                            ChallengeType.NONE -> "Keine Aufgabe"
-                            ChallengeType.MATH -> "Rechenaufgabe (${listOf("Leicht", "Mittel", "Schwer", "Sehr schwer")[alarm.mathDifficulty.coerceIn(0, 3)]})"
-                            ChallengeType.BARCODE -> "Barcode"
-                            ChallengeType.STEPS -> "${alarm.stepGoal} Schritte"
+                            ChallengeType.NONE -> s.challengeNone
+                            ChallengeType.MATH -> s.challengeMath(
+                                s.difficultyLevels[alarm.mathDifficulty.coerceIn(0, 3)]
+                            )
+                            ChallengeType.BARCODE -> s.challengeBarcode
+                            ChallengeType.STEPS -> s.challengeSteps(alarm.stepGoal)
                         }
                     )
-                    if (alarm.wakeCheckMinutes > 0) add("Aufwachkontrolle ${alarm.wakeCheckMinutes} Min")
+                    if (alarm.wakeCheckMinutes > 0) add(s.wakeCheckShort(alarm.wakeCheckMinutes))
                 }
                 Text(details.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
                 when {
                     alarm.enabled && next != null ->
                         Text(
-                            "Klingelt " + relativeLabel((next - System.currentTimeMillis()).coerceAtLeast(0) / 1000),
+                            s.ringsIn(relativeLabel((next - System.currentTimeMillis()).coerceAtLeast(0) / 1000, s)),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.primary
                         )
                     expired ->
                         Text(
-                            "Abgelaufen",
+                            s.expired,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.outline
                         )
                     !alarm.enabled ->
                         Text(
-                            "Deaktiviert",
+                            s.disabled,
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.outline
                         )
@@ -547,7 +480,7 @@ private fun AlarmRow(
             }
             Switch(checked = alarm.enabled, onCheckedChange = onToggle)
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Löschen")
+                Icon(Icons.Default.Delete, contentDescription = s.delete)
             }
         }
     }

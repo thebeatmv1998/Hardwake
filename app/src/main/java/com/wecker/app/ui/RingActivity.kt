@@ -35,6 +35,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -59,10 +60,13 @@ import com.wecker.app.data.ThemeMode
 import com.wecker.app.challenge.BarcodeChallengeScreen
 import com.wecker.app.challenge.MathChallengeScreen
 import com.wecker.app.challenge.StepsChallengeScreen
+import com.wecker.app.i18n.AppLanguage
+import com.wecker.app.i18n.LocalStrings
+import com.wecker.app.i18n.stringsFor
 import com.wecker.app.ui.theme.WeckerTheme
 
-/** Standard-Snooze-Dauer in Minuten. */
-private const val SNOOZE_MINUTES = 10
+/** Standard-Snooze-Dauer in Minuten, falls in den Einstellungen nichts anderes steht. */
+private const val DEFAULT_SNOOZE_MINUTES = 10
 
 /**
  * Vollbild-Screen über dem Sperrbildschirm, solange der Wecker klingelt.
@@ -100,21 +104,32 @@ class RingActivity : ComponentActivity() {
             val settings = remember { SettingsRepository(applicationContext) }
             val themeMode by settings.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
             val colorScheme by settings.colorScheme.collectAsState(initial = 0)
-            WeckerTheme(themeMode = themeMode, colorScheme = colorScheme) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
+            val customPrimary by settings.customPrimary.collectAsState(initial = null)
+            val language by settings.language.collectAsState(initial = AppLanguage.SYSTEM)
+            val snoozeMinutes by settings.snoozeMinutes.collectAsState(initial = DEFAULT_SNOOZE_MINUTES)
+            val strings = remember(language) { stringsFor(language) }
+            CompositionLocalProvider(LocalStrings provides strings) {
+                WeckerTheme(
+                    themeMode = themeMode,
+                    colorScheme = colorScheme,
+                    customPrimary = customPrimary
                 ) {
-                    val alarm by produceState<Alarm?>(initialValue = null, alarmId) {
-                        value = if (alarmId >= 0) AlarmRepository(applicationContext).getById(alarmId) else null
-                    }
-                    val current = alarm
-                    if (current != null) {
-                        RingContent(
-                            alarm = current,
-                            onDismiss = { dismissAlarm(current.id) },
-                            onSnooze = { snoozeAlarm(current.id, SNOOZE_MINUTES) }
-                        )
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        val alarm by produceState<Alarm?>(initialValue = null, alarmId) {
+                            value = if (alarmId >= 0) AlarmRepository(applicationContext).getById(alarmId) else null
+                        }
+                        val current = alarm
+                        if (current != null) {
+                            RingContent(
+                                alarm = current,
+                                snoozeMinutes = snoozeMinutes,
+                                onDismiss = { dismissAlarm(current.id) },
+                                onSnooze = { snoozeAlarm(current.id, snoozeMinutes) }
+                            )
+                        }
                     }
                 }
             }
@@ -140,7 +155,13 @@ class RingActivity : ComponentActivity() {
 }
 
 @Composable
-private fun RingContent(alarm: Alarm, onDismiss: () -> Unit, onSnooze: () -> Unit) {
+private fun RingContent(
+    alarm: Alarm,
+    snoozeMinutes: Int,
+    onDismiss: () -> Unit,
+    onSnooze: () -> Unit
+) {
+    val s = LocalStrings.current
     Column(modifier = Modifier.fillMaxSize()) {
         // Challenge bzw. Klingel-Ansicht füllt den oberen Bereich; Snooze bleibt unten erreichbar.
         Box(modifier = Modifier.fillMaxWidth().weight(1f)) {
@@ -168,7 +189,7 @@ private fun RingContent(alarm: Alarm, onDismiss: () -> Unit, onSnooze: () -> Uni
             OutlinedButton(onClick = onSnooze) {
                 Icon(Icons.Default.Snooze, contentDescription = null)
                 Spacer(Modifier.size(8.dp))
-                Text("In $SNOOZE_MINUTES Min erneut erinnern")
+                Text(s.snoozeButton(snoozeMinutes))
             }
         }
     }
@@ -177,6 +198,7 @@ private fun RingContent(alarm: Alarm, onDismiss: () -> Unit, onSnooze: () -> Uni
 /** Klingel-Ansicht ohne Aufgabe: riesige Zeit, Label und pulsierende Kreise. */
 @Composable
 private fun PlainRingScreen(alarm: Alarm, onDismiss: () -> Unit) {
+    val s = LocalStrings.current
     val primary = MaterialTheme.colorScheme.primary
     // Zwei versetzt phasensierte Ripples.
     val transition = rememberInfiniteTransition(label = "ripple")
@@ -232,7 +254,7 @@ private fun PlainRingScreen(alarm: Alarm, onDismiss: () -> Unit) {
             modifier = Modifier.fillMaxWidth()
         ) {
             Text(
-                "Wecker",
+                s.alarmWord,
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.outline
             )
@@ -253,7 +275,7 @@ private fun PlainRingScreen(alarm: Alarm, onDismiss: () -> Unit) {
                 )
             }
             Spacer(Modifier.height(40.dp))
-            Button(onClick = onDismiss) { Text("Wecker beenden") }
+            Button(onClick = onDismiss) { Text(s.dismissAlarm) }
         }
     }
 }

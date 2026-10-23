@@ -1,12 +1,12 @@
 <p align="center">
-  <img src="docs/icon.png" width="120" alt="Alarm Clock Hard icon">
+  <img src="docs/icon.png" width="120" alt="Hardwake icon">
 </p>
 
-<h1 align="center">Alarm Clock Hard</h1>
+<h1 align="center">Hardwake</h1>
 
 <p align="center">An Android alarm clock that rings until you finish a task.</p>
 
-Alarm Clock Hard wakes you at a set time and puts a challenge between you and the stop button. Solve a few math problems, scan a barcode you registered in advance, or walk a step goal. The alarm opens full screen over the lock screen, so the notification alone will not silence it.
+Hardwake wakes you at a set time and puts a challenge between you and the stop button. Solve a few math problems, scan a barcode you registered in advance, or walk a step goal. The alarm opens full screen over the lock screen, so the notification alone will not silence it.
 
 ## Features
 
@@ -16,14 +16,15 @@ Alarm Clock Hard wakes you at a set time and puts a challenge between you and th
 - **Step challenge**: 10 to 200 steps, in tens.
 - **No challenge**: a plain dismiss button, if you want the alarm without the work.
 - **Wake check**: optional re-ring 5 to 30 minutes after you dismiss, repeating until you turn it off from the notification.
-- **Snooze**: 10 minutes, available from every screen.
+- **Snooze**: configurable from 5 to 30 minutes, available from every screen.
 - **Per-alarm ringtone**: any alarm sound or audio file the system can play.
-- **Full-screen alarm**: shows over the lock screen and keeps the screen on while ringing.
-- **Themes**: five color schemes, light, dark, or system.
+- **Settings**: language, theme mode, color scheme, custom color, snooze length, vibration.
+- **Languages**: German and English, switched in settings without a restart.
+- **Themes**: five color schemes, or a custom seed color picked with an HSV color picker. Light, dark, or system.
 
 ## Install
 
-Download `Alarm-Clock-Hard-1.0.0.apk` from the [latest release](https://github.com/thebeatmv1998/Alarm-Clock-Hard/releases/latest).
+Download `Hardwake-1.1.0.apk` from the [latest release](https://github.com/thebeatmv1998/Hardwake/releases/latest).
 
 Requires Android 8.0 (API 26) or newer. Allow your browser or file manager to install unknown apps.
 
@@ -56,6 +57,10 @@ The debug APK lands in `app/build/outputs/apk/debug/`. Release builds run `lintV
 | `ACTIVITY_RECOGNITION` | the step challenge |
 | `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | optional prompt for systems that delay background alarms |
 
+## Security
+
+Hardwake requests no internet permission, keeps all data in app-private storage, and disables backups. Exported components, PendingIntents and the permission set are documented in the [security audit](docs/security-audit.md).
+
 ## How it works
 
 `AlarmScheduler` registers an exact alarm with `AlarmManager`. `AlarmReceiver` starts `AlarmService`, a media-playback foreground service that plays the ringtone, vibrates, and posts a full-screen notification. The notification opens `RingActivity`, which shows the configured challenge. Finishing the challenge sends `ACTION_DISMISS` back to the service, which stops the sound and either reschedules the next alarm or arms the wake check.
@@ -69,9 +74,10 @@ app/src/main/java/com/wecker/app/
 ├── alarm/      scheduling, ringing service, notifications
 ├── challenge/  math, barcode and step screens
 ├── data/       Room entities, DAO, repositories, settings
-└── ui/         alarm list, editor, ring screen, theme
+├── i18n/       German and English strings
+└── ui/         alarm list, editor, settings, ring screen, theme
 ```
 
 ## Notes
 
-The in-app text is German and the launcher label is "Wecker".
+The package id stays `com.wecker.app` so existing installs can update in place.

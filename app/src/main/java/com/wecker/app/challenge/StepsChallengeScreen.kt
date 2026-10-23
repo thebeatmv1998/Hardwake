@@ -33,10 +33,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import com.wecker.app.i18n.LocalStrings
 
 /** Schritte-Challenge: [goal] Schritte laufen, um den Wecker zu beenden. */
 @Composable
 fun StepsChallengeScreen(goal: Int, onSuccess: () -> Unit) {
+    val s = LocalStrings.current
     val context = LocalContext.current
     var steps by remember { mutableIntStateOf(0) }
     var sensorMissing by remember { mutableStateOf(false) }
@@ -91,14 +93,14 @@ fun StepsChallengeScreen(goal: Int, onSuccess: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Geh $goal Schritte", style = MaterialTheme.typography.titleLarge)
+        Text(s.walkSteps(goal), style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(32.dp))
         when {
             sensorMissing -> Text(
-                "Dieses Gerät hat keinen Schrittzähler-Sensor.",
+                s.noStepSensor,
                 color = MaterialTheme.colorScheme.error
             )
-            !hasPermission -> Text("Berechtigung für körperliche Aktivität erforderlich")
+            !hasPermission -> Text(s.activityPermission)
             else -> {
                 CircularProgressIndicator(
                     progress = { (steps / goal.toFloat()).coerceIn(0f, 1f) },
@@ -106,7 +108,7 @@ fun StepsChallengeScreen(goal: Int, onSuccess: () -> Unit) {
                     strokeWidth = 10.dp
                 )
                 Spacer(Modifier.height(24.dp))
-                Text("$steps / $goal Schritte", style = MaterialTheme.typography.headlineMedium)
+                Text(s.stepsProgress(steps, goal), style = MaterialTheme.typography.headlineMedium)
             }
         }
     }

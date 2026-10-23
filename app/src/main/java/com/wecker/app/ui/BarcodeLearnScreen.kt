@@ -17,22 +17,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.wecker.app.challenge.BarcodeScanner
+import com.wecker.app.i18n.LocalStrings
 
 /** Beim Anlegen eines Weckers: Barcode einscannen und speichern. */
 @Composable
 fun BarcodeLearnScreen(onScanned: (String) -> Unit) {
+    val s = LocalStrings.current
     var scanned by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
         Text(
-            "Barcode einlernen",
+            s.learnBarcodeTitle,
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            "Scanne den Barcode, den du zum Beenden des Weckers brauchst – z. B. auf einem Produkt im Bad oder in der Küche.",
+            s.learnBarcodeHelp,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center

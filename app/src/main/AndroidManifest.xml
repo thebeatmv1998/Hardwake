@@ -19,9 +19,10 @@
 
     <application
         android:name=".WeckerApp"
-        android:label="Wecker"
+        android:label="Hardwake"
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
+        android:allowBackup="false"
         android:theme="@style/Theme.Wecker"
         tools:targetApi="35">
 
@@ -58,7 +59,7 @@
         <receiver
             android:name=".alarm.BootReceiver"
             android:enabled="true"
-            android:exported="true">
+            android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>

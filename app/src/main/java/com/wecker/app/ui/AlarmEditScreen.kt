@@ -80,6 +80,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.wecker.app.alarm.AlarmScheduler
 import com.wecker.app.data.Alarm
 import com.wecker.app.data.ChallengeType
+import com.wecker.app.i18n.LocalStrings
+import com.wecker.app.i18n.Strings
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -87,10 +89,14 @@ import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 /** Wiederholungsart eines Weckers. */
-private enum class RepeatMode(val label: String) {
-    ONCE("Einmalig"),
-    DATE("Datum"),
-    WEEKLY("Wochentage")
+private enum class RepeatMode {
+    ONCE, DATE, WEEKLY
+}
+
+private fun repeatLabel(mode: RepeatMode, s: Strings): String = when (mode) {
+    RepeatMode.ONCE -> s.repeatOnce
+    RepeatMode.DATE -> s.repeatDate
+    RepeatMode.WEEKLY -> s.repeatWeekly
 }
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -103,6 +109,7 @@ fun AlarmEditScreen(
     onBack: () -> Unit,
     viewModel: AlarmEditViewModel = viewModel()
 ) {
+    val s = LocalStrings.current
     val scope = rememberCoroutineScope()
     var loaded by remember { mutableStateOf(false) }
     var initialHour by remember { mutableIntStateOf(7) }
@@ -195,10 +202,10 @@ fun AlarmEditScreen(
         // null bedeutet im Picker „Stumm" – das ignorieren wir, URI bleibt wie sie ist.
         if (result.data != null) ringtoneUri = uri?.toString()
     }
-    val ringtoneTitle = remember(ringtoneUri) {
+    val ringtoneTitle = remember(ringtoneUri, s) {
         ringtoneUri
             ?.let { runCatching { RingtoneManager.getRingtone(context, Uri.parse(it)).getTitle(context) }.getOrNull() }
-            ?: "Standard-Alarmton"
+            ?: s.defaultRingtone
     }
 
     Scaffold(
@@ -207,12 +214,12 @@ fun AlarmEditScreen(
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
             GradientHeader(
-                title = if (alarmId == 0L) "Neuer Wecker" else "Wecker bearbeiten",
+                title = if (alarmId == 0L) s.newAlarm else s.editAlarmTitle,
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Zurück",
+                            contentDescription = s.back,
                             tint = Color.White
                         )
                     }
@@ -245,7 +252,7 @@ fun AlarmEditScreen(
                     ) {
                         Icon(
                             Icons.Default.Check,
-                            contentDescription = "Speichern",
+                            contentDescription = s.save,
                             tint = Color.White
                         )
                     }
@@ -263,12 +270,12 @@ fun AlarmEditScreen(
                     TimePicker(state = timeState)
                     Spacer(Modifier.height(8.dp))
                     val summary = when {
-                        dateInPast -> "Dieses Datum liegt in der Vergangenheit"
-                        previewNext != null -> "Klingelt ${triggerDayLabel(previewNext)} um " +
-                            "%02d:%02d · %s".format(
-                                timeState.hour, timeState.minute,
-                                relativeLabel((previewNext - System.currentTimeMillis()).coerceAtLeast(0) / 1000)
-                            )
+                        dateInPast -> s.dateInPast
+                        previewNext != null -> s.ringsAt(
+                            triggerDayLabel(previewNext, s),
+                            "%02d:%02d".format(timeState.hour, timeState.minute),
+                            relativeLabel((previewNext - System.currentTimeMillis()).coerceAtLeast(0) / 1000, s)
+                        )
                         else -> ""
                     }
                     Text(
@@ -281,7 +288,7 @@ fun AlarmEditScreen(
                 }
 
                 // Wiederholung
-                SectionCard(title = "Wiederholung", contentAlignment = Alignment.Start) {
+                SectionCard(title = s.repeatLabel, contentAlignment = Alignment.Start) {
                     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                         RepeatMode.entries.forEachIndexed { index, mode ->
                             SegmentedButton(
@@ -300,7 +307,7 @@ fun AlarmEditScreen(
                                 shape = SegmentedButtonDefaults.itemShape(
                                     index = index, count = RepeatMode.entries.size
                                 )
-                            ) { Text(mode.label) }
+                            ) { Text(repeatLabel(mode, s)) }
                         }
                     }
                     Spacer(Modifier.height(12.dp))
@@ -314,8 +321,9 @@ fun AlarmEditScreen(
                     ) { mode ->
                         when (mode) {
                             RepeatMode.ONCE -> Text(
-                                "Klingelt nur einmal: " + (previewNext?.let { triggerDayLabel(it) }
-                                    ?: "bald") + " – danach wird der Wecker automatisch deaktiviert.",
+                                s.onceText(
+                                    previewNext?.let { triggerDayLabel(it, s) } ?: s.soon
+                                ),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.outline
                             )
@@ -336,12 +344,12 @@ fun AlarmEditScreen(
                                 Spacer(Modifier.size(12.dp))
                                 Column {
                                     Text(
-                                        "Weckdatum",
+                                        s.alarmDate,
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.outline
                                     )
                                     Text(
-                                        dateEpochDay?.let { fullDateLabel(it) } ?: "Datum wählen",
+                                        dateEpochDay?.let { fullDateLabel(it, s) } ?: s.chooseDate,
                                         style = MaterialTheme.typography.titleMedium,
                                         fontWeight = FontWeight.SemiBold
                                     )
@@ -357,14 +365,14 @@ fun AlarmEditScreen(
                                         FilterChip(
                                             selected = selected,
                                             onClick = { daysMask = daysMask xor (1 shl day) },
-                                            label = { Text(dayLabel(day)) }
+                                            label = { Text(dayLabel(day, s)) }
                                         )
                                     }
                                 }
                                 Spacer(Modifier.height(8.dp))
                                 Text(
-                                    if (daysMask == 0) "Kein Tag gewählt → klingelt einmalig"
-                                    else "Klingelt: ${daysSummary(Alarm(0, 0, 0, daysMask))}",
+                                    if (daysMask == 0) s.noDaySelected
+                                    else s.ringsOn(daysSummary(Alarm(0, 0, 0, daysMask), s)),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.outline
                                 )
@@ -376,7 +384,7 @@ fun AlarmEditScreen(
                 OutlinedTextField(
                     value = label,
                     onValueChange = { label = it },
-                    label = { Text("Bezeichnung (optional)") },
+                    label = { Text(s.labelField) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -391,7 +399,7 @@ fun AlarmEditScreen(
                             .clickable {
                                 val intent = Intent(RingtoneManager.ACTION_RINGTONE_PICKER).apply {
                                     putExtra(RingtoneManager.EXTRA_RINGTONE_TYPE, RingtoneManager.TYPE_ALARM)
-                                    putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, "Klingelton wählen")
+                                    putExtra(RingtoneManager.EXTRA_RINGTONE_TITLE, s.chooseRingtone)
                                     putExtra(
                                         RingtoneManager.EXTRA_RINGTONE_EXISTING_URI,
                                         ringtoneUri?.let(Uri::parse)
@@ -418,7 +426,7 @@ fun AlarmEditScreen(
                         Spacer(Modifier.size(12.dp))
                         Column {
                             Text(
-                                "Klingelton",
+                                s.ringtoneLabel,
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline
                             )
@@ -428,8 +436,13 @@ fun AlarmEditScreen(
                 }
 
                 // Aufgabe zum Beenden
-                SectionCard(title = "Aufgabe zum Beenden", contentAlignment = Alignment.Start) {
-                    val challengeLabels = listOf("Keine", "Mathe", "Barcode", "Schritte")
+                SectionCard(title = s.challengeToDismiss, contentAlignment = Alignment.Start) {
+                    val challengeLabels = listOf(
+                        s.challengeNoneShort,
+                        s.challengeMathShort,
+                        s.challengeBarcodeShort,
+                        s.challengeStepsShort
+                    )
                     SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
                         ChallengeType.entries.forEachIndexed { index, type ->
                             SegmentedButton(
@@ -450,13 +463,13 @@ fun AlarmEditScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             when (challengeType) {
                                 ChallengeType.MATH -> {
-                                    Text("Schwierigkeit:", style = MaterialTheme.typography.bodyMedium)
+                                    Text(s.difficultyLabel, style = MaterialTheme.typography.bodyMedium)
                                     Spacer(Modifier.height(8.dp))
                                     FlowRow(
                                         modifier = Modifier.fillMaxWidth(),
                                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                                     ) {
-                                        listOf("Leicht", "Mittel", "Schwer", "Sehr schwer")
+                                        s.difficultyLevels
                                             .forEachIndexed { level, name ->
                                                 FilterChip(
                                                     selected = mathDifficulty == level,
@@ -467,7 +480,7 @@ fun AlarmEditScreen(
                                     }
                                     Spacer(Modifier.height(8.dp))
                                     Text(
-                                        "Anzahl Aufgaben: $mathCount",
+                                        s.problemCount(mathCount),
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Slider(
@@ -480,14 +493,14 @@ fun AlarmEditScreen(
                                 ChallengeType.BARCODE -> {
                                     Button(onClick = onLearnBarcode) {
                                         Text(
-                                            if (barcodeValue == null) "Barcode einlernen"
-                                            else "Barcode neu einlernen"
+                                            if (barcodeValue == null) s.learnBarcode
+                                            else s.relearnBarcode
                                         )
                                     }
                                     Spacer(Modifier.height(8.dp))
                                     Text(
-                                        if (barcodeValue != null) "Barcode gespeichert ✓"
-                                        else "Scanne den Barcode, den du morgens suchen musst (z. B. auf der Duschgel-Flasche).",
+                                        if (barcodeValue != null) s.barcodeSaved
+                                        else s.barcodeHelp,
                                         style = MaterialTheme.typography.bodySmall,
                                         color = if (barcodeValue != null) MaterialTheme.colorScheme.primary
                                         else MaterialTheme.colorScheme.outline
@@ -495,7 +508,7 @@ fun AlarmEditScreen(
                                 }
                                 ChallengeType.STEPS -> {
                                     Text(
-                                        "Schritte: $stepGoal",
+                                        s.stepsValue(stepGoal),
                                         style = MaterialTheme.typography.bodyMedium
                                     )
                                     Slider(
@@ -512,10 +525,10 @@ fun AlarmEditScreen(
                 }
 
                 // Aufwachkontrolle
-                SectionCard(title = "Aufwachkontrolle", contentAlignment = Alignment.Start) {
+                SectionCard(title = s.wakeCheckTitle, contentAlignment = Alignment.Start) {
                     Text(
-                        if (wakeCheckMinutes == 0) "Aus"
-                        else "Klingelt $wakeCheckMinutes Min nach dem Beenden erneut, bis du in der Benachrichtigung endgültig deaktivierst",
+                        if (wakeCheckMinutes == 0) s.off
+                        else s.wakeCheckText(wakeCheckMinutes),
                         style = MaterialTheme.typography.bodyMedium,
                         color = if (wakeCheckMinutes == 0) MaterialTheme.colorScheme.outline
                         else MaterialTheme.colorScheme.onSurface
@@ -530,9 +543,9 @@ fun AlarmEditScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Aus", style = MaterialTheme.typography.labelSmall,
+                        Text(s.off, style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline)
-                        Text("30 Min", style = MaterialTheme.typography.labelSmall,
+                        Text(s.thirtyMinutes, style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.outline)
                     }
                 }
@@ -556,10 +569,10 @@ fun AlarmEditScreen(
                             .atZone(ZoneOffset.UTC).toLocalDate().toEpochDay()
                     }
                     showDatePicker = false
-                }) { Text("OK") }
+                }) { Text(s.ok) }
             },
             dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) { Text("Abbrechen") }
+                TextButton(onClick = { showDatePicker = false }) { Text(s.cancel) }
             }
         ) {
             DatePicker(state = pickerState)

@@ -26,10 +26,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
+import com.wecker.app.i18n.LocalStrings
 
 /** Kamera-Vorschau mit ML-Kit-Barcode-Erkennung. Ruft [onBarcode] mit dem Rohwert auf. */
 @Composable
 fun BarcodeScanner(onBarcode: (String) -> Unit, modifier: Modifier = Modifier) {
+    val s = LocalStrings.current
     val context = LocalContext.current
     var hasPermission by remember {
         mutableStateOf(
@@ -45,7 +47,7 @@ fun BarcodeScanner(onBarcode: (String) -> Unit, modifier: Modifier = Modifier) {
 
     if (!hasPermission) {
         Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            Text("Kamera-Berechtigung erforderlich")
+            Text(s.cameraPermission)
         }
         return
     }

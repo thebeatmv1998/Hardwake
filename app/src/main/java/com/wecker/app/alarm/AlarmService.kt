@@ -13,10 +13,13 @@ import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import com.wecker.app.data.AlarmRepository
+import com.wecker.app.data.SettingsRepository
+import com.wecker.app.i18n.stringsFor
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
@@ -60,8 +63,10 @@ class AlarmService : Service() {
         scope.launch {
             val repository = AlarmRepository(applicationContext)
             val alarm = repository.getById(alarmId) ?: run { stopSelf(); return@launch }
+            val settings = SettingsRepository(applicationContext)
+            val strings = stringsFor(settings.language.first())
 
-            val notification = NotificationHelper.buildRingNotification(applicationContext, alarm)
+            val notification = NotificationHelper.buildRingNotification(applicationContext, alarm, strings)
             if (Build.VERSION.SDK_INT >= 29) {
                 startForeground(
                     NotificationHelper.ringNotificationId(alarm.id),
@@ -72,7 +77,7 @@ class AlarmService : Service() {
                 startForeground(NotificationHelper.ringNotificationId(alarm.id), notification)
             }
             playSound(alarm.ringtoneUri)
-            startVibration()
+            if (settings.vibrate.first()) startVibration()
         }
     }
 
@@ -88,10 +93,11 @@ class AlarmService : Service() {
             if (alarm != null && alarm.wakeCheckMinutes > 0) {
                 // Aufwachkontrolle: erneutes Klingeln einplanen, bis der Nutzer
                 // über die Benachrichtigung endgültig deaktiviert.
+                val strings = stringsFor(SettingsRepository(applicationContext).language.first())
                 val triggerAt = AlarmScheduler.scheduleWakeCheck(
                     applicationContext, alarmId, alarm.wakeCheckMinutes
                 )
-                NotificationHelper.showWakeCheckNotification(applicationContext, alarm, triggerAt)
+                NotificationHelper.showWakeCheckNotification(applicationContext, alarm, triggerAt, strings)
             } else {
                 repository.rescheduleNext(alarmId)
             }
@@ -108,8 +114,9 @@ class AlarmService : Service() {
         scope.launch {
             val alarm = AlarmRepository(applicationContext).getById(alarmId)
             if (alarm != null) {
+                val strings = stringsFor(SettingsRepository(applicationContext).language.first())
                 val triggerAt = AlarmScheduler.scheduleWakeCheck(applicationContext, alarmId, minutes)
-                NotificationHelper.showWakeCheckNotification(applicationContext, alarm, triggerAt)
+                NotificationHelper.showWakeCheckNotification(applicationContext, alarm, triggerAt, strings)
             }
             stopForeground(STOP_FOREGROUND_REMOVE)
             stopSelf()

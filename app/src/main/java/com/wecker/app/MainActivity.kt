@@ -13,6 +13,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -24,9 +25,13 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.wecker.app.data.SettingsRepository
 import com.wecker.app.data.ThemeMode
+import com.wecker.app.i18n.AppLanguage
+import com.wecker.app.i18n.LocalStrings
+import com.wecker.app.i18n.stringsFor
 import com.wecker.app.ui.AlarmEditScreen
 import com.wecker.app.ui.AlarmListScreen
 import com.wecker.app.ui.BarcodeLearnScreen
+import com.wecker.app.ui.SettingsScreen
 import com.wecker.app.ui.theme.WeckerTheme
 
 class MainActivity : ComponentActivity() {
@@ -36,9 +41,19 @@ class MainActivity : ComponentActivity() {
             val settings = remember { SettingsRepository(applicationContext) }
             val themeMode by settings.themeMode.collectAsState(initial = ThemeMode.SYSTEM)
             val colorScheme by settings.colorScheme.collectAsState(initial = 0)
-            WeckerTheme(themeMode = themeMode, colorScheme = colorScheme) {
-                NotificationPermissionRequest()
-                WeckerNavHost()
+            val customPrimary by settings.customPrimary.collectAsState(initial = null)
+            val language by settings.language.collectAsState(initial = AppLanguage.SYSTEM)
+            val strings = remember(language) { stringsFor(language) }
+
+            CompositionLocalProvider(LocalStrings provides strings) {
+                WeckerTheme(
+                    themeMode = themeMode,
+                    colorScheme = colorScheme,
+                    customPrimary = customPrimary
+                ) {
+                    NotificationPermissionRequest()
+                    WeckerNavHost()
+                }
             }
         }
     }
@@ -71,7 +86,13 @@ private fun WeckerNavHost() {
         }
     ) {
         composable("list") {
-            AlarmListScreen(onEditAlarm = { id -> navController.navigate("edit/$id") })
+            AlarmListScreen(
+                onEditAlarm = { id -> navController.navigate("edit/$id") },
+                onOpenSettings = { navController.navigate("settings") }
+            )
+        }
+        composable("settings") {
+            SettingsScreen(onBack = { navController.popBackStack() })
         }
         composable(
             route = "edit/{alarmId}",

@@ -33,6 +33,7 @@ import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.wecker.app.i18n.LocalStrings
 import kotlin.random.Random
 
 private data class Problem(val text: String, val answer: Int)
@@ -120,6 +121,7 @@ private fun generateProblem(difficulty: Int, index: Int): Problem {
 /** Rechenaufgabe: [count] Aufgaben in Schwierigkeit [difficulty] (0 = Leicht … 3 = Sehr schwer) richtig lösen. */
 @Composable
 fun MathChallengeScreen(count: Int, difficulty: Int, onSuccess: () -> Unit) {
+    val s = LocalStrings.current
     var solved by remember { mutableIntStateOf(0) }
     var problem by remember { mutableStateOf(generateProblem(difficulty, 0)) }
     var input by remember { mutableStateOf("") }
@@ -148,23 +150,23 @@ fun MathChallengeScreen(count: Int, difficulty: Int, onSuccess: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text("Rechenaufgabe", style = MaterialTheme.typography.titleLarge)
+        Text(s.mathTitle, style = MaterialTheme.typography.titleLarge)
         Spacer(Modifier.height(8.dp))
         LinearProgressIndicator(
             progress = { solved / count.toFloat() },
             modifier = Modifier.fillMaxWidth()
         )
         Spacer(Modifier.height(4.dp))
-        Text("Aufgabe ${solved + 1} von $count", style = MaterialTheme.typography.bodyMedium)
+        Text(s.mathProgress(solved + 1, count), style = MaterialTheme.typography.bodyMedium)
         Spacer(Modifier.height(32.dp))
         Text("${problem.text} = ?", style = MaterialTheme.typography.displaySmall)
         Spacer(Modifier.height(24.dp))
         OutlinedTextField(
             value = input,
             onValueChange = { input = it; error = false },
-            label = { Text("Antwort") },
+            label = { Text(s.answerLabel) },
             isError = error,
-            supportingText = { if (error) Text("Falsch – versuch es nochmal") },
+            supportingText = { if (error) Text(s.wrongAnswer) },
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
                 imeAction = ImeAction.Done
@@ -185,7 +187,7 @@ fun MathChallengeScreen(count: Int, difficulty: Int, onSuccess: () -> Unit) {
         )
         Spacer(Modifier.height(16.dp))
         Button(onClick = { submit() }) {
-            Text("Prüfen")
+            Text(s.check)
         }
     }
 }

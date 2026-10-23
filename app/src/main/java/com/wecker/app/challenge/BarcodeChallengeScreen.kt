@@ -18,16 +18,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.wecker.app.i18n.LocalStrings
 
 /** Barcode-Challenge: der eingelernte Barcode muss erneut gescannt werden. */
 @Composable
 fun BarcodeChallengeScreen(expectedValue: String, onSuccess: () -> Unit) {
+    val s = LocalStrings.current
     var wrong by remember { mutableStateOf(false) }
     var done by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
         Text(
-            "Scanne den richtigen Barcode",
+            s.scanCorrectBarcode,
             style = MaterialTheme.typography.titleLarge,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Center
@@ -53,11 +55,11 @@ fun BarcodeChallengeScreen(expectedValue: String, onSuccess: () -> Unit) {
         ) {
             if (wrong) {
                 Text(
-                    "Falscher Barcode – versuch es nochmal",
+                    s.wrongBarcode,
                     color = MaterialTheme.colorScheme.error
                 )
             } else {
-                Text("Halte den Barcode vor die Kamera")
+                Text(s.holdBarcode)
             }
         }
     }
