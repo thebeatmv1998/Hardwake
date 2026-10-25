@@ -60,7 +60,7 @@ The debug APK lands in `app/build/outputs/apk/debug/`. Release builds run `lintV
 
 ## Security
 
-Hardwake requests no internet permission, keeps all data in app-private storage, and disables backups. Exported components, PendingIntents and the permission set are documented in the [security audit](docs/security-audit.md).
+Hardwake's own code makes no network requests and keeps all data in app-private storage with backups disabled. The merged manifest still carries `INTERNET` and `ACCESS_NETWORK_STATE`, inherited from ML Kit's telemetry transport, so the APK is not network-free on paper. Exported components, PendingIntents, the permission set and the CVE review are documented in the [security audit](docs/security-audit.md).
 
 ## How it works
 
