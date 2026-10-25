@@ -24,11 +24,14 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.annotation.OptIn
+import androidx.camera.core.ExperimentalGetImage
 import com.google.mlkit.vision.barcode.BarcodeScanning
 import com.google.mlkit.vision.common.InputImage
 import com.wecker.app.i18n.LocalStrings
 
 /** Kamera-Vorschau mit ML-Kit-Barcode-Erkennung. Ruft [onBarcode] mit dem Rohwert auf. */
+@OptIn(ExperimentalGetImage::class)
 @Composable
 fun BarcodeScanner(onBarcode: (String) -> Unit, modifier: Modifier = Modifier) {
     val s = LocalStrings.current

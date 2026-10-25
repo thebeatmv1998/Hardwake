@@ -25,7 +25,7 @@ Hardwake wakes you at a set time and puts a challenge between you and the stop b
 
 ## Install
 
-Download `Hardwake-1.2.1.apk` from the [latest release](https://github.com/thebeatmv1998/Hardwake/releases/latest).
+Download `Hardwake-1.2.2.apk` from the [latest release](https://github.com/thebeatmv1998/Hardwake/releases/latest).
 
 Requires Android 8.0 (API 26) or newer. Allow your browser or file manager to install unknown apps.
 
