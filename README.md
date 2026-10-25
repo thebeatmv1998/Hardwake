@@ -25,7 +25,7 @@ Hardwake wakes you at a set time and puts a challenge between you and the stop b
 
 ## Install
 
-Download `Hardwake-1.2.0.apk` from the [latest release](https://github.com/thebeatmv1998/Hardwake/releases/latest).
+Download `Hardwake-1.2.1.apk` from the [latest release](https://github.com/thebeatmv1998/Hardwake/releases/latest).
 
 Requires Android 8.0 (API 26) or newer. Allow your browser or file manager to install unknown apps.
 
@@ -60,7 +60,7 @@ The debug APK lands in `app/build/outputs/apk/debug/`. Release builds run `lintV
 
 ## Security
 
-Hardwake's own code makes no network requests and keeps all data in app-private storage with backups disabled. The merged manifest still carries `INTERNET` and `ACCESS_NETWORK_STATE`, inherited from ML Kit's telemetry transport, so the APK is not network-free on paper. Exported components, PendingIntents, the permission set and the CVE review are documented in the [security audit](docs/security-audit.md).
+Hardwake's own code makes no network requests and keeps all data in app-private storage with backups disabled. ML Kit's telemetry transport declares `INTERNET`, so the build removes that permission from the merged manifest with `tools:node="remove"`; the app cannot open network connections. `ACCESS_NETWORK_STATE` remains because ML Kit reads connectivity status, which does not allow transmission. Exported components, PendingIntents, the permission set and the CVE review are documented in the [security audit](docs/security-audit.md).
 
 ## How it works
 
