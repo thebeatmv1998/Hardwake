@@ -32,5 +32,10 @@ data class Alarm(
     /** Aufwachkontrolle: Minuten bis zum erneuten Klingeln. 0 = aus. */
     val wakeCheckMinutes: Int = 0,
     /** Eigener Klingelton (URI als String); null = Standard-Alarmton. */
-    val ringtoneUri: String? = null
+    val ringtoneUri: String? = null,
+    /**
+     * Epoch-Day eines Vorkommens, das einmalig ausfallen soll („Nächsten
+     * überspringen"). Nur für wiederkehrende Wecker gedacht.
+     */
+    val skipEpochDay: Long? = null
 )

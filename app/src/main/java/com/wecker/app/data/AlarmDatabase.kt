@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Alarm::class], version = 4, exportSchema = false)
+@Database(entities = [Alarm::class], version = 5, exportSchema = false)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
 
@@ -21,6 +21,13 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        /** v5: Neue Spalte skipEpochDay für einmalig ausgesetzte Vorkommen. */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE alarms ADD COLUMN skipEpochDay INTEGER")
+            }
+        }
+
         fun get(context: Context): AlarmDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -28,7 +35,7 @@ abstract class AlarmDatabase : RoomDatabase() {
                     AlarmDatabase::class.java,
                     "wecker.db"
                 )
-                    .addMigrations(MIGRATION_3_4)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
                     .fallbackToDestructiveMigration()
                     .build().also { instance = it }
             }

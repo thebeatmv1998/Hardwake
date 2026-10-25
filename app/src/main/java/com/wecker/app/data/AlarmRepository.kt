@@ -2,6 +2,9 @@ package com.wecker.app.data
 
 import android.content.Context
 import com.wecker.app.alarm.AlarmScheduler
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.flow.Flow
 
 class AlarmRepository(private val context: Context) {
@@ -34,13 +37,49 @@ class AlarmRepository(private val context: Context) {
         dao.delete(alarm)
     }
 
+    /**
+     * „Nächsten überspringen": merkt sich den Tag des nächsten Vorkommens und
+     * plant direkt den Termin danach. Nur für wiederkehrende Wecker sinnvoll.
+     */
+    suspend fun skipNext(alarmId: Long): Alarm? {
+        val alarm = dao.getById(alarmId) ?: return null
+        if (alarm.dateEpochDay != null || alarm.daysMask == 0) return null
+        val next = AlarmScheduler.nextTriggerMillis(alarm) ?: return null
+        val day = Instant.ofEpochMilli(next)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+            .toEpochDay()
+        val updated = alarm.copy(skipEpochDay = day)
+        dao.update(updated)
+        AlarmScheduler.cancel(context, alarm.id)
+        AlarmScheduler.schedule(context, updated)
+        return updated
+    }
+
+    /** Hebt ein gesetztes Aussetzen wieder auf. */
+    suspend fun clearSkip(alarmId: Long): Alarm? {
+        val alarm = dao.getById(alarmId) ?: return null
+        val updated = alarm.copy(skipEpochDay = null)
+        dao.update(updated)
+        AlarmScheduler.cancel(context, alarm.id)
+        AlarmScheduler.schedule(context, updated)
+        return updated
+    }
+
     /** Nach dem endgültigen Deaktivieren: nächstes Vorkommen planen (oder Einmal-Wecker abschalten). */
     suspend fun rescheduleNext(alarmId: Long) {
         val alarm = dao.getById(alarmId) ?: return
-        if (alarm.daysMask == 0) {
-            dao.update(alarm.copy(enabled = false))
+        // Abgelaufene Aussetzer aufräumen, damit sie nicht dauerhaft in der DB stehen.
+        val today = LocalDate.now().toEpochDay()
+        val current = if (alarm.skipEpochDay != null && alarm.skipEpochDay < today) {
+            alarm.copy(skipEpochDay = null).also { dao.update(it) }
         } else {
-            AlarmScheduler.schedule(context, alarm)
+            alarm
+        }
+        if (current.daysMask == 0) {
+            dao.update(current.copy(enabled = false))
+        } else {
+            AlarmScheduler.schedule(context, current)
         }
     }
 

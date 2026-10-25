@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import com.wecker.app.data.Alarm
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -21,8 +22,20 @@ object AlarmScheduler {
     /**
      * Nächster Zeitpunkt (Millis), an dem der Wecker klingeln soll – oder null,
      * wenn kein künftiger Termin mehr existiert (z. B. Datum in der Vergangenheit).
+     * Ein gesetztes [Alarm.skipEpochDay] lässt genau dieses Vorkommen ausfallen.
      */
     fun nextTriggerMillis(alarm: Alarm, from: LocalDateTime = LocalDateTime.now()): Long? {
+        val first = nextTriggerAfter(alarm, from) ?: return null
+        val skipDay = alarm.skipEpochDay ?: return first
+        val firstDate = Instant.ofEpochMilli(first).atZone(ZoneId.systemDefault()).toLocalDate()
+        if (firstDate.toEpochDay() != skipDay) return first
+        // Einmalige und Datums-Wecker haben kein weiteres Vorkommen.
+        if (alarm.dateEpochDay != null || alarm.daysMask == 0) return null
+        return nextTriggerAfter(alarm, firstDate.plusDays(1).atStartOfDay())
+    }
+
+    /** Nächstes Vorkommen ohne Berücksichtigung von [Alarm.skipEpochDay]. */
+    private fun nextTriggerAfter(alarm: Alarm, from: LocalDateTime): Long? {
         // Konkretes Datum: genau einmal an diesem Tag klingeln, sonst nie.
         alarm.dateEpochDay?.let { epochDay ->
             val date = LocalDate.ofEpochDay(epochDay)

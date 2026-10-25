@@ -16,6 +16,7 @@ Hardwake wakes you at a set time and puts a challenge between you and the stop b
 - **Step challenge**: 10 to 200 steps, in tens.
 - **No challenge**: a plain dismiss button, if you want the alarm without the work.
 - **Wake check**: optional re-ring 5 to 30 minutes after you dismiss, repeating until you turn it off from the notification.
+- **Skip next**: skip one occurrence of a repeating alarm, for a day off or a holiday, and undo it from the alarm list.
 - **Snooze**: configurable from 5 to 30 minutes, available from every screen.
 - **Per-alarm ringtone**: any alarm sound or audio file the system can play.
 - **Settings**: language, theme mode, color scheme, custom color, snooze length, vibration.
@@ -24,7 +25,7 @@ Hardwake wakes you at a set time and puts a challenge between you and the stop b
 
 ## Install
 
-Download `Hardwake-1.1.0.apk` from the [latest release](https://github.com/thebeatmv1998/Hardwake/releases/latest).
+Download `Hardwake-1.2.0.apk` from the [latest release](https://github.com/thebeatmv1998/Hardwake/releases/latest).
 
 Requires Android 8.0 (API 26) or newer. Allow your browser or file manager to install unknown apps.
 

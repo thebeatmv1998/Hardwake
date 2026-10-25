@@ -27,4 +27,14 @@ class AlarmListViewModel(app: Application) : AndroidViewModel(app) {
     fun delete(alarm: Alarm) {
         viewModelScope.launch { repository.delete(alarm) }
     }
+
+    /** Nächstes Vorkommen einmalig ausfallen lassen. */
+    fun skipNext(alarm: Alarm) {
+        viewModelScope.launch { repository.skipNext(alarm.id) }
+    }
+
+    /** Aussetzen rückgängig machen. */
+    fun clearSkip(alarm: Alarm) {
+        viewModelScope.launch { repository.clearSkip(alarm.id) }
+    }
 }

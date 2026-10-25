@@ -52,6 +52,9 @@ interface Strings {
     val challengeBarcode: String
     fun challengeSteps(goal: Int): String
     fun wakeCheckShort(minutes: Int): String
+    val skipNext: String
+    val undoSkip: String
+    fun skippedOn(date: String): String
     val difficultyLevels: List<String>
     val settingsDescription: String
 
@@ -218,6 +221,9 @@ object StringsDe : Strings {
     override val challengeBarcode = "Barcode"
     override fun challengeSteps(goal: Int) = "$goal Schritte"
     override fun wakeCheckShort(minutes: Int) = "Aufwachkontrolle $minutes Min"
+    override val skipNext = "Überspringen"
+    override val undoSkip = "Rückgängig"
+    override fun skippedOn(date: String) = "Übersprungen: $date"
     override val difficultyLevels = listOf("Leicht", "Mittel", "Schwer", "Sehr schwer")
     override val settingsDescription = "Einstellungen"
 
@@ -393,6 +399,9 @@ object StringsEn : Strings {
     override val challengeBarcode = "Barcode"
     override fun challengeSteps(goal: Int) = "$goal steps"
     override fun wakeCheckShort(minutes: Int) = "Wake check $minutes min"
+    override val skipNext = "Skip next"
+    override val undoSkip = "Undo"
+    override fun skippedOn(date: String) = "Skipped: $date"
     override val difficultyLevels = listOf("Easy", "Medium", "Hard", "Very hard")
     override val settingsDescription = "Settings"
 

@@ -21,8 +21,12 @@ fun daysSummary(alarm: Alarm, s: Strings): String = when {
 /** Wiederholung eines Weckers: konkretes Datum oder Wochentage. */
 fun repeatSummary(alarm: Alarm, s: Strings): String = when (val epochDay = alarm.dateEpochDay) {
     null -> daysSummary(alarm, s)
-    else -> LocalDate.ofEpochDay(epochDay).format(dateFormatter(s))
+    else -> dateLabel(epochDay, s)
 }
+
+/** Kompaktes Datum, z. B. „Mo, 26.10.2026" oder „Mon, Oct 26, 2026". */
+fun dateLabel(epochDay: Long, s: Strings): String =
+    LocalDate.ofEpochDay(epochDay).format(dateFormatter(s))
 
 /** Datum eines Auslösezeitpunkts: „heute", „morgen" oder das konkrete Datum. */
 fun triggerDayLabel(millis: Long, s: Strings, now: LocalDate = LocalDate.now()): String {

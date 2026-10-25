@@ -37,6 +37,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -88,6 +89,7 @@ import com.wecker.app.data.Alarm
 import com.wecker.app.data.ChallengeType
 import com.wecker.app.i18n.LocalStrings
 import com.wecker.app.ui.theme.LocalAppPalette
+import java.time.LocalDate
 import kotlinx.coroutines.delay
 
 @Composable
@@ -207,7 +209,9 @@ fun AlarmListScreen(
                             modifier = Modifier.animateItem(),
                             onClick = { onEditAlarm(alarm.id) },
                             onToggle = { viewModel.setEnabled(alarm, it) },
-                            onDelete = { pendingDelete = alarm }
+                            onDelete = { pendingDelete = alarm },
+                            onSkipNext = { viewModel.skipNext(alarm) },
+                            onClearSkip = { viewModel.clearSkip(alarm) }
                         )
                     }
                 }
@@ -417,13 +421,21 @@ private fun AlarmRow(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
     onToggle: (Boolean) -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onSkipNext: () -> Unit,
+    onClearSkip: () -> Unit
 ) {
     val s = LocalStrings.current
-    val next = remember(alarm.id, alarm.enabled, alarm.hour, alarm.minute, alarm.daysMask, alarm.dateEpochDay) {
+    val next = remember(
+        alarm.id, alarm.enabled, alarm.hour, alarm.minute,
+        alarm.daysMask, alarm.dateEpochDay, alarm.skipEpochDay
+    ) {
         AlarmScheduler.nextTriggerMillis(alarm)
     }
     val expired = alarm.dateEpochDay != null && next == null
+    val skipDay = alarm.skipEpochDay
+    val skipActive = skipDay != null && skipDay >= LocalDate.now().toEpochDay()
+    val canSkip = alarm.enabled && alarm.dateEpochDay == null && alarm.daysMask != 0
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
@@ -457,25 +469,45 @@ private fun AlarmRow(
                     if (alarm.wakeCheckMinutes > 0) add(s.wakeCheckShort(alarm.wakeCheckMinutes))
                 }
                 Text(details.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
-                when {
+                val status = when {
                     alarm.enabled && next != null ->
-                        Text(
-                            s.ringsIn(relativeLabel((next - System.currentTimeMillis()).coerceAtLeast(0) / 1000, s)),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    expired ->
-                        Text(
-                            s.expired,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline
-                        )
-                    !alarm.enabled ->
-                        Text(
-                            s.disabled,
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.outline
-                        )
+                        s.ringsIn(relativeLabel((next - System.currentTimeMillis()).coerceAtLeast(0) / 1000, s))
+                    expired -> s.expired
+                    !alarm.enabled -> s.disabled
+                    else -> null
+                }
+                if (status != null || skipActive) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            if (status != null) {
+                                Text(
+                                    status,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (alarm.enabled && next != null) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.outline
+                                )
+                            }
+                            if (skipActive && skipDay != null) {
+                                Text(
+                                    s.skippedOn(dateLabel(skipDay, s)),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.tertiary
+                                )
+                            }
+                        }
+                        if (skipActive || canSkip) {
+                            TextButton(
+                                onClick = if (skipActive) onClearSkip else onSkipNext,
+                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                                modifier = Modifier.heightIn(min = 34.dp)
+                            ) {
+                                Text(
+                                    if (skipActive) s.undoSkip else s.skipNext,
+                                    style = MaterialTheme.typography.labelLarge
+                                )
+                            }
+                        }
+                    }
                 }
             }
             Switch(checked = alarm.enabled, onCheckedChange = onToggle)

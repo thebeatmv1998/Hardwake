@@ -81,4 +81,53 @@ class AlarmSchedulerTest {
             AlarmScheduler.nextTriggerMillis(alarm, now)
         )
     }
+
+    @Test
+    fun `skip laesst das naechste Vorkommen ausfallen`() {
+        // Montag 10:00, Wecker montags 23:00 → ohne Skip heute, mit Skip erst nächste Woche.
+        val alarm = Alarm(
+            id = 1, hour = 23, minute = 0,
+            daysMask = 0b0000001,
+            skipEpochDay = now.toLocalDate().toEpochDay()
+        )
+        assertEquals(
+            millisOf(now.plusWeeks(1).withHour(23).withMinute(0)),
+            AlarmScheduler.nextTriggerMillis(alarm, now)
+        )
+    }
+
+    @Test
+    fun `skip bei taeglichem Wecker springt auf den naechsten Tag`() {
+        val alarm = Alarm(
+            id = 1, hour = 23, minute = 0,
+            daysMask = 0b1111111,
+            skipEpochDay = now.toLocalDate().toEpochDay()
+        )
+        assertEquals(
+            millisOf(now.plusDays(1).withHour(23)),
+            AlarmScheduler.nextTriggerMillis(alarm, now)
+        )
+    }
+
+    @Test
+    fun `skip an einem anderen Tag aendert nichts`() {
+        val alarm = Alarm(
+            id = 1, hour = 23, minute = 0,
+            daysMask = 0b1111111,
+            skipEpochDay = now.toLocalDate().plusDays(1).toEpochDay()
+        )
+        assertEquals(
+            millisOf(now.withHour(23)),
+            AlarmScheduler.nextTriggerMillis(alarm, now)
+        )
+    }
+
+    @Test
+    fun `skip bei einmaligem Wecker liefert null`() {
+        val alarm = Alarm(
+            id = 1, hour = 23, minute = 0,
+            skipEpochDay = now.toLocalDate().toEpochDay()
+        )
+        assertNull(AlarmScheduler.nextTriggerMillis(alarm, now))
+    }
 }
