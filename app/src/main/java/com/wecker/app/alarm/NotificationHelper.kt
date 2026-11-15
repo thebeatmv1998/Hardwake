@@ -91,6 +91,16 @@ object NotificationHelper {
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
+        // Android 14+ erlaubt das Wegwischen dauerhafter Benachrichtigungen.
+        // Der Delete-Intent baut sie wieder auf, solange die Kontrolle läuft.
+        val deleteIntent = PendingIntent.getBroadcast(
+            context, alarm.id.toInt() + 700_000,
+            Intent(context, WakeCheckReceiver::class.java).apply {
+                action = WakeCheckReceiver.ACTION_NOTIFICATION_DISMISSED
+                putExtra(WakeCheckReceiver.EXTRA_ALARM_ID, alarm.id)
+            },
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
         val notification = NotificationCompat.Builder(context, CHANNEL_WAKE_CHECK)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(strings.wakeGuardTitle)
@@ -100,6 +110,7 @@ object NotificationHelper {
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setContentIntent(openAppIntent)
+            .setDeleteIntent(deleteIntent)
             // Restzeit bis zum erneuten Klingeln live herunterzählen.
             .setWhen(triggerAtMillis)
             .setShowWhen(true)

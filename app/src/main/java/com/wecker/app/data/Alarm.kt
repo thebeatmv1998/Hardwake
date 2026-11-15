@@ -37,5 +37,11 @@ data class Alarm(
      * Epoch-Day eines Vorkommens, das einmalig ausfallen soll („Nächsten
      * überspringen"). Nur für wiederkehrende Wecker gedacht.
      */
-    val skipEpochDay: Long? = null
+    val skipEpochDay: Long? = null,
+    /**
+     * Zeitpunkt (Millis) der geplanten Aufwachkontrolle. Null, wenn keine aktiv
+     * ist. Wird für die dauerhafte Benachrichtigung und die In-App-Abschaltung
+     * gebraucht.
+     */
+    val wakeCheckUntil: Long? = null
 )

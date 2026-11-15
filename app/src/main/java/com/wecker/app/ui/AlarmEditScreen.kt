@@ -127,6 +127,7 @@ fun AlarmEditScreen(
     var wakeCheckMinutes by remember { mutableIntStateOf(0) }
     var ringtoneUri by remember { mutableStateOf<String?>(null) }
     var skipEpochDay by remember { mutableStateOf<Long?>(null) }
+    var wakeCheckUntil by remember { mutableStateOf<Long?>(null) }
 
     LaunchedEffect(alarmId) {
         viewModel.load(alarmId)?.let { alarm ->
@@ -148,6 +149,7 @@ fun AlarmEditScreen(
             wakeCheckMinutes = alarm.wakeCheckMinutes
             ringtoneUri = alarm.ringtoneUri
             skipEpochDay = alarm.skipEpochDay
+            wakeCheckUntil = alarm.wakeCheckUntil
         }
         // Race-Fix: Falls ein Barcode schon eingescannt wurde (z. B. weil die Activity
         // während des Scans neu erstellt wurde), hat er Vorrang vor den DB-Werten.
@@ -245,7 +247,8 @@ fun AlarmEditScreen(
                                 stepGoal = stepGoal,
                                 wakeCheckMinutes = wakeCheckMinutes,
                                 ringtoneUri = ringtoneUri,
-                                skipEpochDay = if (repeatMode == RepeatMode.WEEKLY) skipEpochDay else null
+                                skipEpochDay = if (repeatMode == RepeatMode.WEEKLY) skipEpochDay else null,
+                                wakeCheckUntil = wakeCheckUntil
                             )
                             scope.launch {
                                 viewModel.save(alarm)

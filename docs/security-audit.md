@@ -1,8 +1,8 @@
 # Security audit
 
 **App:** Hardwake (`com.wecker.app`)  
-**Version:** 1.2.2 (versionCode 5)  
-**Date:** 2026-10-25  
+**Version:** 1.3.0 (versionCode 6)  
+**Date:** 2026-11-15  
 **Method:** manual source review, merged release manifest, Android Lint (`lintRelease`), OSV.dev dependency scan, APK inspection with `aapt`/`apksigner`, DEX string scan, git history secret scan. No dynamic testing on a device or emulator.
 
 ## Summary
@@ -16,6 +16,8 @@
 | Info | 0 | 1 | 4 |
 
 No open high or medium findings. The remaining open item is dependency currency (S-10).
+
+Version 1.3.0 adds no permissions, components or network access. The wake-check notification now carries a delete intent to a non-exported receiver, which stays within the app's own broadcast surface.
 
 ## Scope
 

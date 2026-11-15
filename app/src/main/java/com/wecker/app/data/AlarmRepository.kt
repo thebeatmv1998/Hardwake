@@ -2,6 +2,8 @@ package com.wecker.app.data
 
 import android.content.Context
 import com.wecker.app.alarm.AlarmScheduler
+import com.wecker.app.alarm.NotificationHelper
+import com.wecker.app.i18n.Strings
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -26,8 +28,18 @@ class AlarmRepository(private val context: Context) {
             saved = saved.copy(enabled = false)
             dao.update(saved)
         }
-        if (saved.enabled) AlarmScheduler.schedule(context, saved)
-        else AlarmScheduler.cancel(context, id)
+        if (!saved.enabled) {
+            AlarmScheduler.cancel(context, id)
+            // Ein deaktivierter Wecker darf keine Aufwachkontrolle weiterlaufen lassen.
+            if (saved.wakeCheckUntil != null) {
+                AlarmScheduler.cancelWakeCheck(context, id)
+                NotificationHelper.cancelWakeCheckNotification(context, id)
+                saved = saved.copy(wakeCheckUntil = null)
+                dao.update(saved)
+            }
+        } else {
+            AlarmScheduler.schedule(context, saved)
+        }
         return id
     }
 
@@ -66,6 +78,51 @@ class AlarmRepository(private val context: Context) {
         return updated
     }
 
+    /** Merkt sich den Zeitpunkt der geplanten Aufwachkontrolle (null = keine aktiv). */
+    suspend fun setWakeCheckUntil(alarmId: Long, triggerAt: Long?) {
+        val alarm = dao.getById(alarmId) ?: return
+        dao.update(alarm.copy(wakeCheckUntil = triggerAt))
+    }
+
+    /**
+     * Beendet die Aufwachkontrolle endgültig: Benachrichtigung und
+     * AlarmManager-Termin entfernen, Zustand löschen und den regulären
+     * nächsten Wecker planen.
+     */
+    suspend fun cancelWakeCheck(alarmId: Long) {
+        AlarmScheduler.cancelWakeCheck(context, alarmId)
+        NotificationHelper.cancelWakeCheckNotification(context, alarmId)
+        val alarm = dao.getById(alarmId) ?: return
+        dao.update(alarm.copy(wakeCheckUntil = null))
+        rescheduleNext(alarmId)
+    }
+
+    /** Löscht eine fällige Aufwachkontrolle, ohne eine neuere zu überschreiben. */
+    suspend fun clearWakeCheckIfDue(alarmId: Long) {
+        val alarm = dao.getById(alarmId) ?: return
+        val until = alarm.wakeCheckUntil ?: return
+        if (until <= System.currentTimeMillis()) {
+            dao.update(alarm.copy(wakeCheckUntil = null))
+        }
+    }
+
+    /**
+     * Stellt nach einem Neustart geplante Aufwachkontrollen wieder her:
+     * AlarmManager-Termin neu setzen und die Benachrichtigung erneut anzeigen.
+     */
+    suspend fun restoreWakeChecks(strings: Strings) {
+        val now = System.currentTimeMillis()
+        dao.getEnabled().forEach { alarm ->
+            val until = alarm.wakeCheckUntil ?: return@forEach
+            if (until <= now) {
+                dao.update(alarm.copy(wakeCheckUntil = null))
+            } else {
+                AlarmScheduler.scheduleWakeCheckAt(context, alarm.id, until)
+                NotificationHelper.showWakeCheckNotification(context, alarm, until, strings)
+            }
+        }
+    }
+
     /** Nach dem endgültigen Deaktivieren: nächstes Vorkommen planen (oder Einmal-Wecker abschalten). */
     suspend fun rescheduleNext(alarmId: Long) {
         val alarm = dao.getById(alarmId) ?: return
@@ -85,11 +142,18 @@ class AlarmRepository(private val context: Context) {
 
     /** Plant alle aktiven Wecker neu; abgelaufene Einmal-/Datums-Wecker werden deaktiviert. */
     suspend fun rescheduleAllEnabled() {
+        val now = System.currentTimeMillis()
         dao.getEnabled().forEach { alarm ->
-            if (AlarmScheduler.nextTriggerMillis(alarm) == null) {
-                dao.update(alarm.copy(enabled = false))
+            // Abgelaufene Aufwachkontrollen aufräumen.
+            val current = if (alarm.wakeCheckUntil != null && alarm.wakeCheckUntil <= now) {
+                alarm.copy(wakeCheckUntil = null).also { dao.update(it) }
             } else {
-                AlarmScheduler.schedule(context, alarm)
+                alarm
+            }
+            if (AlarmScheduler.nextTriggerMillis(current) == null) {
+                dao.update(current.copy(enabled = false))
+            } else {
+                AlarmScheduler.schedule(context, current)
             }
         }
     }

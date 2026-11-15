@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [Alarm::class], version = 5, exportSchema = false)
+@Database(entities = [Alarm::class], version = 6, exportSchema = false)
 abstract class AlarmDatabase : RoomDatabase() {
     abstract fun alarmDao(): AlarmDao
 
@@ -28,6 +28,13 @@ abstract class AlarmDatabase : RoomDatabase() {
             }
         }
 
+        /** v6: Neue Spalte wakeCheckUntil für die geplante Aufwachkontrolle. */
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE alarms ADD COLUMN wakeCheckUntil INTEGER")
+            }
+        }
+
         fun get(context: Context): AlarmDatabase =
             instance ?: synchronized(this) {
                 instance ?: Room.databaseBuilder(
@@ -35,7 +42,7 @@ abstract class AlarmDatabase : RoomDatabase() {
                     AlarmDatabase::class.java,
                     "wecker.db"
                 )
-                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5)
+                    .addMigrations(MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
                     .fallbackToDestructiveMigration()
                     .build().also { instance = it }
             }

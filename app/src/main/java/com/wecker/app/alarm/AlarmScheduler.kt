@@ -94,8 +94,14 @@ object AlarmScheduler {
      * Zeitpunkt für den Countdown verwenden kann.
      */
     fun scheduleWakeCheck(context: Context, alarmId: Long, minutes: Int): Long {
-        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val triggerAt = System.currentTimeMillis() + minutes * 60_000L
+        scheduleWakeCheckAt(context, alarmId, triggerAt)
+        return triggerAt
+    }
+
+    /** Plant die Aufwachkontrolle zu einem absoluten Zeitpunkt (z. B. nach einem Neustart). */
+    fun scheduleWakeCheckAt(context: Context, alarmId: Long, triggerAt: Long) {
+        val am = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         try {
             am.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,
@@ -105,7 +111,6 @@ object AlarmScheduler {
         } catch (e: SecurityException) {
             am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAt, wakeCheckPendingIntent(context, alarmId))
         }
-        return triggerAt
     }
 
     fun cancelWakeCheck(context: Context, alarmId: Long) {

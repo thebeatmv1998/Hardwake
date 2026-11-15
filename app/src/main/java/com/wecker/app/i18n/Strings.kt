@@ -55,6 +55,8 @@ interface Strings {
     val skipNext: String
     val undoSkip: String
     fun skippedOn(date: String): String
+    fun wakeCheckActiveUntil(time: String): String
+    val wakeCheckOff: String
     val difficultyLevels: List<String>
     val settingsDescription: String
 
@@ -224,6 +226,8 @@ object StringsDe : Strings {
     override val skipNext = "Überspringen"
     override val undoSkip = "Rückgängig"
     override fun skippedOn(date: String) = "Übersprungen: $date"
+    override fun wakeCheckActiveUntil(time: String) = "Aufwachkontrolle bis $time"
+    override val wakeCheckOff = "Ausschalten"
     override val difficultyLevels = listOf("Leicht", "Mittel", "Schwer", "Sehr schwer")
     override val settingsDescription = "Einstellungen"
 
@@ -402,6 +406,8 @@ object StringsEn : Strings {
     override val skipNext = "Skip next"
     override val undoSkip = "Undo"
     override fun skippedOn(date: String) = "Skipped: $date"
+    override fun wakeCheckActiveUntil(time: String) = "Wake check until $time"
+    override val wakeCheckOff = "Turn off"
     override val difficultyLevels = listOf("Easy", "Medium", "Hard", "Very hard")
     override val settingsDescription = "Settings"
 

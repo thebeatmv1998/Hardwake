@@ -37,4 +37,9 @@ class AlarmListViewModel(app: Application) : AndroidViewModel(app) {
     fun clearSkip(alarm: Alarm) {
         viewModelScope.launch { repository.clearSkip(alarm.id) }
     }
+
+    /** Aufwachkontrolle endgültig abschalten. */
+    fun cancelWakeCheck(alarm: Alarm) {
+        viewModelScope.launch { repository.cancelWakeCheck(alarm.id) }
+    }
 }

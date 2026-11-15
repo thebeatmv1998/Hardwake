@@ -97,6 +97,7 @@ class AlarmService : Service() {
                 val triggerAt = AlarmScheduler.scheduleWakeCheck(
                     applicationContext, alarmId, alarm.wakeCheckMinutes
                 )
+                repository.setWakeCheckUntil(alarmId, triggerAt)
                 NotificationHelper.showWakeCheckNotification(applicationContext, alarm, triggerAt, strings)
             } else {
                 repository.rescheduleNext(alarmId)
@@ -112,10 +113,12 @@ class AlarmService : Service() {
         NotificationHelper.cancelRingNotification(applicationContext, alarmId)
         sendBroadcast(Intent(ACTION_DISMISSED).setPackage(packageName))
         scope.launch {
-            val alarm = AlarmRepository(applicationContext).getById(alarmId)
+            val repository = AlarmRepository(applicationContext)
+            val alarm = repository.getById(alarmId)
             if (alarm != null) {
                 val strings = stringsFor(SettingsRepository(applicationContext).language.first())
                 val triggerAt = AlarmScheduler.scheduleWakeCheck(applicationContext, alarmId, minutes)
+                repository.setWakeCheckUntil(alarmId, triggerAt)
                 NotificationHelper.showWakeCheckNotification(applicationContext, alarm, triggerAt, strings)
             }
             stopForeground(STOP_FOREGROUND_REMOVE)

@@ -89,7 +89,9 @@ import com.wecker.app.data.Alarm
 import com.wecker.app.data.ChallengeType
 import com.wecker.app.i18n.LocalStrings
 import com.wecker.app.ui.theme.LocalAppPalette
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.delay
 
 @Composable
@@ -211,7 +213,8 @@ fun AlarmListScreen(
                             onToggle = { viewModel.setEnabled(alarm, it) },
                             onDelete = { pendingDelete = alarm },
                             onSkipNext = { viewModel.skipNext(alarm) },
-                            onClearSkip = { viewModel.clearSkip(alarm) }
+                            onClearSkip = { viewModel.clearSkip(alarm) },
+                            onCancelWakeCheck = { viewModel.cancelWakeCheck(alarm) }
                         )
                     }
                 }
@@ -423,12 +426,13 @@ private fun AlarmRow(
     onToggle: (Boolean) -> Unit,
     onDelete: () -> Unit,
     onSkipNext: () -> Unit,
-    onClearSkip: () -> Unit
+    onClearSkip: () -> Unit,
+    onCancelWakeCheck: () -> Unit
 ) {
     val s = LocalStrings.current
     val next = remember(
         alarm.id, alarm.enabled, alarm.hour, alarm.minute,
-        alarm.daysMask, alarm.dateEpochDay, alarm.skipEpochDay
+        alarm.daysMask, alarm.dateEpochDay, alarm.skipEpochDay, alarm.wakeCheckUntil
     ) {
         AlarmScheduler.nextTriggerMillis(alarm)
     }
@@ -436,6 +440,8 @@ private fun AlarmRow(
     val skipDay = alarm.skipEpochDay
     val skipActive = skipDay != null && skipDay >= LocalDate.now().toEpochDay()
     val canSkip = alarm.enabled && alarm.dateEpochDay == null && alarm.daysMask != 0
+    val wakeCheckUntil = alarm.wakeCheckUntil
+    val wakeCheckActive = wakeCheckUntil != null && wakeCheckUntil > System.currentTimeMillis()
     Card(
         onClick = onClick,
         modifier = modifier.fillMaxWidth(),
@@ -506,6 +512,26 @@ private fun AlarmRow(
                                     style = MaterialTheme.typography.labelLarge
                                 )
                             }
+                        }
+                    }
+                }
+                if (wakeCheckActive && wakeCheckUntil != null) {
+                    val time = Instant.ofEpochMilli(wakeCheckUntil)
+                        .atZone(ZoneId.systemDefault())
+                        .toLocalTime()
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            s.wakeCheckActiveUntil("%02d:%02d".format(time.hour, time.minute)),
+                            modifier = Modifier.weight(1f),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                        TextButton(
+                            onClick = onCancelWakeCheck,
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp),
+                            modifier = Modifier.heightIn(min = 34.dp)
+                        ) {
+                            Text(s.wakeCheckOff, style = MaterialTheme.typography.labelLarge)
                         }
                     }
                 }
